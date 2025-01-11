@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hakari Slot Machine</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+            background-color: white;
+            color: black;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .slot-machine {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .reel {
+            width: 100px;
+            height: 100px;
+            margin: 0 10px;
+            overflow: hidden;
+            background-color: transparent;
+            position: relative;
+        }
+
+        .reel-container {
+            position: absolute;
+            top: -600px;
+            width: 100%;
+            transition: top 0.1s ease-out;
+        }
+
+        .reel img {
+            width: 100%;
+            display: block;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background-color: #28a745;
+            color: white;
+            position: relative;
+            z-index: 2;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        .jackpot {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: black;
+            z-index: 1;
+        }
+
+        .jackpot video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .slider-container {
+            margin: 20px 0;
+            position: relative;
+            z-index: 2;
+        }
+
+        .slider-container input {
+            width: 300px;
+        }
+
+        .slider-container label {
+            margin-right: 10px;
+        }
+
+        h1 {
+            position: relative;
+            z-index: 2;
+            animation: hueShift 4s infinite linear, figureEight 5s infinite;
+        }
+
+        @keyframes hueShift {
+            0% {
+                color: #00ff00; /* Green */
+            }
+            50% {
+                color: #ffd700; /* Gold */
+            }
+            100% {
+                color: #00ff00; /* Back to Green */
+            }
+        }
+
+        @keyframes figureEight {
+            0%, 100% {
+                transform: translate(0, 0);
+            }
+            25% {
+                transform: translate(-10px, 10px);
+            }
+            50% {
+                transform: translate(0, 20px);
+            }
+            75% {
+                transform: translate(10px, 10px);
+            }
+        }
+
+        .intro-image {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            width: 100%;
+            height: auto;
+            z-index: 0;
+            animation: growIntro 3s cubic-bezier(0.8, 0.2, 0.9, 1.1) forwards;
+        }
+
+        @keyframes growIntro {
+            0% {
+                transform: translate(-50%, -50%) scale(0);
+            }
+            70% {
+                transform: translate(-50%, -50%) scale(0.1); /* Super slow growth */
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1.5); /* Final fast growth */
+            }
+        }
+        
+        
+.ball {
+    position: absolute;
+    bottom: 20px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    pointer-events: none; /* Prevent interaction with the ball */
+    animation: fadeMove 3s forwards;
+}
+
+.ball.rainbow {
+    animation: rainbowHueShift 2s infinite linear; /* Rainbow animation */
+    background-color: transparent; /* Rainbow handled by animation */
+}
+
+@keyframes fadeMove {
+    0% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-200px);
+    }
+}
+
+@keyframes rainbowHueShift {
+    0% { background-color: red; }
+    25% { background-color: yellow; }
+    50% { background-color: green; }
+    75% { background-color: blue; }
+    100% { background-color: red; }
+}
+
+/* Ensure other elements are unaffected */
+body {
+    overflow: hidden;
+}
+
+.slider-container {
+    display: none; /* Hides the slider */
+}
+.jackpot-message {
+    position: fixed;
+    bottom: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+    z-index: 100;
+    animation: fadeInOut 3s;
+}
+
+@keyframes fadeInOut {
+    0% {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    10%, 90% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+}
+
+
+    </style>
+</head>
+<body>
+  
+    <!-- Sounds -->
+    <audio id="intro-sound" src="intro-sound.mp3" preload="auto"></audio>
+    <audio id="reel-stop-sound" src="reel-stop.mp3" preload="auto"></audio>
+
+    <img src="intro.jpg" alt="Intro Image" class="intro-image">
+    <h1>Hakari Slot Machine</h1>
+    <div class="slot-machine">
+        <div class="reel" id="reel1">
+            <div class="reel-container" id="reel-container1">
+                <img src="1.jpg" alt="1">
+                <img src="2.jpg" alt="2">
+                <img src="3.jpg" alt="3">
+                <img src="4.jpg" alt="4">
+                <img src="5.jpg" alt="5">
+                <img src="6.jpg" alt="6">
+                <img src="7.jpg" alt="7">
+            </div>
+        </div>
+        <div class="reel" id="reel2">
+            <div class="reel-container" id="reel-container2">
+                <img src="1.jpg" alt="1">
+                <img src="2.jpg" alt="2">
+                <img src="3.jpg" alt="3">
+                <img src="4.jpg" alt="4">
+                <img src="5.jpg" alt="5">
+                <img src="6.jpg" alt="6">
+                <img src="7.jpg" alt="7">
+            </div>
+        </div>
+        <div class="reel" id="reel3">
+            <div class="reel-container" id="reel-container3">
+                <img src="1.jpg" alt="1">
+                <img src="2.jpg" alt="2">
+                <img src="3.jpg" alt="3">
+                <img src="4.jpg" alt="4">
+                <img src="5.jpg" alt="5">
+                <img src="6.jpg" alt="6">
+                <img src="7.jpg" alt="7">
+            </div>
+        </div>
+    </div>
+    <div class="slider-container">
+        <label for="jackpot-probability">Jackpot Probability:</label>
+        <input type="range" id="jackpot-probability" min="1" max="49" value="49">
+        <span id="probability-value">1/49</span>
+    </div>
+    <button onclick="spin()">Spin</button>
+    <div id="jackpot" class="jackpot">
+        <video id="jackpot-video" src="jackpot.mp4" muted loop></video>
+    </div>
+
+    <script>
+        const introSound = document.getElementById('intro-sound');
+        const introImage = document.querySelector('.intro-image');
+        const reelStopSound = document.getElementById('reel-stop-sound'); // Added sound for reels stop
+        const images = ["1.jpg", "2.jpg", "3.jpg", "4.jpg", "5.jpg", "6.jpg", "7.jpg"];
+        const jackpotSound = new Audio('jackpot.mp3');
+        let spinningIntervals = [];
+        let jackpotProbability = 1 / 49;
+
+        // Intro sound on page load
+        window.addEventListener('load', () => {
+            introSound.play();
+        });
+
+        // Stop intro sound when animation ends
+        introImage.addEventListener('animationend', () => {
+            introSound.pause();
+            introSound.currentTime = 0;
+        });
+
+        document.getElementById('jackpot-probability').addEventListener('input', (event) => {
+            const value = parseInt(event.target.value, 10);
+            jackpotProbability = 1 / value;
+            document.getElementById('probability-value').textContent = `1/${value}`;
+        });
+
+        function spin() {
+            const reels = [
+                document.getElementById('reel-container1'),
+                document.getElementById('reel-container2'),
+                document.getElementById('reel-container3')
+            ];
+            const results = [];
+            spinningIntervals.forEach(interval => clearInterval(interval));
+            spinningIntervals = [];
+
+            const isJackpot = Math.random() < jackpotProbability;
+            const jackpotIndex = isJackpot ? Math.floor(Math.random() * images.length) : null;
+
+            reels.forEach((reel, index) => {
+                let position = -600;
+                let speed = 100;
+
+                const interval = setInterval(() => {
+                    position += speed;
+                    if (position >= 0) position = -600;
+                    reel.style.top = position + "px";
+                }, 100);
+
+                spinningIntervals.push(interval);
+
+                setTimeout(() => {
+                    const slowDownInterval = setInterval(() => {
+                        speed = Math.max(10, speed - 10);
+                        if (speed === 10) {
+                            clearInterval(slowDownInterval);
+                            clearInterval(interval);
+
+                            const finalIndex = isJackpot ? jackpotIndex : Math.floor(Math.random() * images.length);
+                            results[index] = finalIndex;
+                            reel.style.top = -finalIndex * 100 + "px";
+
+                            if (index === reels.length - 1) {
+    checkJackpot(results);
+    displayBall(); // Call ball animation after spin
+}
+
+                        }
+                    }, 100);
+                }, index * 250 + 1000);
+            });
+        } 
+        setTimeout(() => {
+    displayBall();
+}, 3000); // Simulates end of spin
+
+
+function checkJackpot(results) {
+    const jackpotElement = document.getElementById('jackpot');
+    const jackpotVideo = document.getElementById('jackpot-video');
+    const isJackpot = results[0] === results[1] && results[1] === results[2];
+
+    // Play reel stop sound
+    reelStopSound.pause();
+    reelStopSound.currentTime = 0;
+    reelStopSound.play();
+
+    if (isJackpot) {
+        jackpotElement.style.display = 'block';
+        jackpotVideo.currentTime = 0;
+        jackpotVideo.play();
+
+        jackpotSound.pause();
+        jackpotSound.currentTime = 0;
+        jackpotSound.play();
+
+        // Determine ball type and message
+        const jackpotNumber = results[0];
+        const ballType = jackpotNumber % 2 === 0 ? "rainbow" : "green";
+        const message = jackpotNumber % 2 === 0 ? "Increased Probability!" : "Faster Spins!";
+
+        spawnBall(ballType); // Spawn the ball
+        displayMessage(message); // Show the message
+
+        // Reset jackpot probability
+        jackpotProbability = 1 / 49;
+
+        setTimeout(() => {
+            jackpotVideo.pause();
+            jackpotElement.style.display = 'none';
+        }, 120000); // Adjust time as needed
+    } else {
+        jackpotElement.style.display = 'none';
+        if (isJackpot) {
+    const jackpotNumber = results[0];
+    const ballType = jackpotNumber % 2 === 0 ? "rainbow" : "green";
+    const message = jackpotNumber % 2 === 0 ? "Increased Probability!" : "Faster Spins!";
+
+    spawnBall(ballType); // Spawn specific ball type
+    displayBall(); // Display a random ball for variety
+    displayMessage(message); // Show the message
+}
+
+    }
+}
+
+        const colors = ["green", "red", "gold", "rainbow"];
+
+function spawnBall(type) {
+    console.log(`Spawning ball of type: ${type}`); // Debug log
+
+    // Create a ball element
+    const ball = document.createElement('div');
+    ball.className = `ball ${type === 'rainbow' ? 'rainbow' : ''}`;
+    ball.style.backgroundColor = type !== 'rainbow' ? type : 'transparent';
+
+    // Set initial position and size
+    ball.style.position = 'absolute';
+    ball.style.left = `${Math.random() * (window.innerWidth - 50)}px`; // Random horizontal position
+    ball.style.bottom = '20px'; // Start near the bottom
+    ball.style.width = '50px';
+    ball.style.height = '50px';
+    ball.style.borderRadius = '50%';
+    ball.style.pointerEvents = 'none'; // Prevent interaction
+
+    // Append the ball to the document
+    document.body.appendChild(ball);
+
+    // Animate the ball
+    setTimeout(() => {
+        ball.style.transition = 'transform 3s ease, opacity 3s';
+        ball.style.transform = 'translateY(-200px)'; // Ball moves upward
+        ball.style.opacity = '0';
+    }, 50);
+
+    // Remove the ball after animation
+    setTimeout(() => {
+        ball.remove();
+        console.log('Ball animation complete and removed'); // Debug log
+        updateProbability(type); // Update the probability after ball animation
+    }, 3000);
+}
+
+function displayBall() {
+    const ball = document.createElement('div');
+    const ballColor = determineBallColor(); // Determine the color of the ball
+    ball.className = `ball ${ballColor === 'rainbow' ? 'rainbow' : ''}`;
+    ball.style.backgroundColor = ballColor !== 'rainbow' ? ballColor : 'transparent';
+
+    // Set ball position and styles
+    ball.style.position = 'absolute';
+    ball.style.left = `${Math.random() * (window.innerWidth - 50)}px`; // Random horizontal position
+    ball.style.bottom = '20px'; // Initial position
+    ball.style.width = '50px';
+    ball.style.height = '50px';
+    ball.style.borderRadius = '50%';
+    ball.style.pointerEvents = 'none'; // Prevent interaction
+    document.body.appendChild(ball);
+
+    // Animate the ball
+    setTimeout(() => {
+        ball.style.transition = 'transform 3s ease, opacity 3s';
+        ball.style.transform = 'translateY(-200px)'; // Ball moves upward
+        ball.style.opacity = '0';
+    }, 50);
+
+    // Remove the ball after animation and update probability
+    setTimeout(() => {
+        ball.remove();
+        console.log(`Ball of color ${ballColor} removed`); // Debug log
+        updateProbability(ballColor); // Ensure probability updates after ball disappears
+    }, 3000);
+}
+
+function displayMessage(text) {
+    const message = document.createElement('div');
+    message.classList.add('jackpot-message');
+    message.textContent = text;
+
+    document.body.appendChild(message);
+
+    setTimeout(() => {
+        message.remove();
+    }, 3000);
+}
+
+function determineBallColor() {
+    const random = Math.random();
+    if (random < 1 / 16) return 'rainbow';
+    if (random < 1 / 4) return 'gold';
+    if (random < 1 / 2) return 'red';
+    return 'green';
+}
+
+function updateProbability(color) {
+    console.log(`Updating probability based on ball color: ${color}`);
+
+    if (color === 'red') {
+        jackpotProbability = Math.min(jackpotProbability * 2, 0.99); // Cap at 99%
+    } else if (color === 'gold') {
+        jackpotProbability = Math.min(jackpotProbability * 3, 0.99); // Cap at 99%
+    } else if (color === 'rainbow') {
+        jackpotProbability = 0.99; // Directly set to 99%
+    }
+
+    console.log(`New jackpot probability: ${jackpotProbability}`);
+    document.getElementById('jackpot-probability').value = Math.round(1 / jackpotProbability);
+    document.getElementById('probability-value').textContent = `1/${Math.round(1 / jackpotProbability)}`;
+}
+
+    </script>
+</body>
+</html>
