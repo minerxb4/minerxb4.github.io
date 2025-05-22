@@ -224,7 +224,66 @@ body {
     }
 }
 
+.timer-container {
+    margin-top: 15px;
+    font-size: 16px;
+    color: #333;
+    position: absolute; /* Changed from relative to absolute */
+    z-index: 10;
+    background-color: rgba(255, 255, 255, 0.8);
+    padding: 10px 15px;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    cursor: move;
+    user-select: none;
+    top: 20px;
+    right: 20px;
+}
+    
+    .drag-handle {
+        font-size: 14px;
+        margin-bottom: 5px;
+        color: #666;
+        text-align: center;
+    }
+    
+    #countdown {
+        font-weight: bold;
+        animation: countdownHueShift 4s infinite linear;
+    }
+    
+    @keyframes countdownHueShift {
+        0% {
+            color: #00ff00; /* Green */
+        }
+        50% {
+            color: #ffd700; /* Gold */
+        }
+        100% {
+            color: #00ff00; /* Back to Green */
+        }
+    }
 
+    .timer-settings {
+        margin-top: 8px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 14px;
+    }
+    
+    .timer-settings input {
+        width: 50px;
+        padding: 3px;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+    }
+    
+    .timer-settings button {
+        padding: 3px 8px;
+        font-size: 12px;
+        background-color: #28a745;
+    }
     </style>
 </head>
 <body>
@@ -276,6 +335,15 @@ body {
         <span id="probability-value">1/49</span>
     </div>
     <button onclick="spin()">Spin</button>
+    <div class="timer-container" id="timer-container">
+        <div class="drag-handle">⋮⋮</div>
+        <p>Next auto-roll in: <span id="countdown">5:00</span></p>
+        <div class="timer-settings">
+            <label for="timer-minutes">Set timer (min):</label>
+            <input type="number" id="timer-minutes" min="1" max="60" value="5">
+            <button id="apply-timer">Apply</button>
+        </div>
+    </div>
     <div id="jackpot" class="jackpot">
         <video id="jackpot-video" src="jackpot.mp4" muted loop></video>
     </div>
@@ -288,10 +356,18 @@ body {
         const jackpotSound = new Audio('jackpot.mp3');
         let spinningIntervals = [];
         let jackpotProbability = 1 / 49;
+        let autoRollInterval;
+        let countdownInterval;
+        let timeRemaining = 300; // 5 minutes in seconds
+        let timerDuration = 5; // Default 5 minutes
+        let spinCooldown = false;
+        let spinCooldownTime = 10000; // 10 seconds in milliseconds
+        let isFasterSpinsMode = false; // Track if faster spins mode is active
 
         // Intro sound on page load
         window.addEventListener('load', () => {
             introSound.play();
+            startAutoRoll();
         });
 
         // Stop intro sound when animation ends
@@ -306,7 +382,50 @@ body {
             document.getElementById('probability-value').textContent = `1/${value}`;
         });
 
+        function startAutoRoll() {
+            // Clear any existing intervals
+            if (autoRollInterval) clearInterval(autoRollInterval);
+            if (countdownInterval) clearInterval(countdownInterval);
+            
+            // Set time remaining based on current timer duration
+            timeRemaining = timerDuration * 60;
+            updateCountdownDisplay();
+            
+            // Start countdown timer
+            countdownInterval = setInterval(() => {
+                timeRemaining--;
+                updateCountdownDisplay();
+                
+                if (timeRemaining <= 0) {
+                    spin();
+                    timeRemaining = timerDuration * 60;
+                }
+            }, 1000);
+        }
+
+        function updateCountdownDisplay() {
+            const minutes = Math.floor(timeRemaining / 60);
+            const seconds = timeRemaining % 60;
+            document.getElementById('countdown').textContent = 
+                `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+        }
+
         function spin() {
+            // Check if button is in cooldown and not in faster spins mode
+            if (spinCooldown && !isFasterSpinsMode) {
+                return; // Exit function if in cooldown and not in faster spins mode
+            }
+            
+            // Set cooldown
+            spinCooldown = true;
+            setTimeout(() => {
+                spinCooldown = false;
+            }, spinCooldownTime);
+            
+            // Reset auto-roll timer when manually spinning
+            if (countdownInterval) clearInterval(countdownInterval);
+            startAutoRoll();
+            
             const reels = [
                 document.getElementById('reel-container1'),
                 document.getElementById('reel-container2'),
@@ -381,8 +500,18 @@ function checkJackpot(results) {
         const ballType = jackpotNumber % 2 === 0 ? "rainbow" : "green";
         const message = jackpotNumber % 2 === 0 ? "Increased Probability!" : "Faster Spins!";
 
-        spawnBall(ballType); // Spawn the ball
-        displayMessage(message); // Show the message
+        // Set faster spins mode if applicable
+        if (message === "Faster Spins!") {
+            isFasterSpinsMode = true;
+            // Set a timeout to disable faster spins mode after 30 seconds
+            setTimeout(() => {
+                isFasterSpinsMode = false;
+                displayMessage("Faster Spins mode ended");
+            }, 30000);
+        }
+
+        spawnBall(ballType);
+        displayMessage(message);
 
         // Reset jackpot probability
         jackpotProbability = 1 / 49;
@@ -510,6 +639,100 @@ function updateProbability(color) {
     document.getElementById('probability-value').textContent = `1/${Math.round(1 / jackpotProbability)}`;
 }
 
+        // Add this draggable functionality to your script
+        document.addEventListener('DOMContentLoaded', function() {
+            const timerContainer = document.getElementById('timer-container');
+            let isDragging = false;
+            let offsetX, offsetY;
+            
+            // Mouse events for desktop
+            timerContainer.addEventListener('mousedown', startDrag);
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('mouseup', stopDrag);
+            
+            // Touch events for mobile
+            timerContainer.addEventListener('touchstart', startDragTouch);
+            document.addEventListener('touchmove', dragTouch);
+            document.addEventListener('touchend', stopDrag);
+            
+            function startDrag(e) {
+                isDragging = true;
+                offsetX = e.clientX - timerContainer.getBoundingClientRect().left;
+                offsetY = e.clientY - timerContainer.getBoundingClientRect().top;
+            }
+            
+            function startDragTouch(e) {
+                if (e.touches.length === 1) {
+                    isDragging = true;
+                    const touch = e.touches[0];
+                    offsetX = touch.clientX - timerContainer.getBoundingClientRect().left;
+                    offsetY = touch.clientY - timerContainer.getBoundingClientRect().top;
+                }
+            }
+            
+            function drag(e) {
+                if (!isDragging) return;
+                e.preventDefault();
+                
+                timerContainer.style.left = (e.clientX - offsetX) + 'px';
+                timerContainer.style.top = (e.clientY - offsetY) + 'px';
+                timerContainer.style.right = 'auto'; // Clear the right position
+            }
+            
+            function dragTouch(e) {
+                if (!isDragging || e.touches.length !== 1) return;
+                e.preventDefault();
+                
+                const touch = e.touches[0];
+                timerContainer.style.left = (touch.clientX - offsetX) + 'px';
+                timerContainer.style.top = (touch.clientY - offsetY) + 'px';
+                timerContainer.style.right = 'auto'; // Clear the right position
+            }
+            
+            function stopDrag() {
+                isDragging = false;
+            }
+        });
+        // Add timer setting functionality
+        const timerMinutesInput = document.getElementById('timer-minutes');
+        const applyTimerButton = document.getElementById('apply-timer');
+        
+        applyTimerButton.addEventListener('click', function() {
+            const newDuration = parseInt(timerMinutesInput.value, 10);
+            if (newDuration >= 1 && newDuration <= 60) {
+                timerDuration = newDuration;
+                // Restart auto-roll with new duration
+                startAutoRoll();
+            }
+        });
+        // Add a visual indicator for the spin button when in cooldown
+        document.addEventListener('DOMContentLoaded', function() {
+            const spinButton = document.querySelector('button');
+            let cooldownTimer = 0;
+            
+            function updateButtonState() {
+                if (spinCooldown && !isFasterSpinsMode) {
+                    cooldownTimer = Math.max(0, cooldownTimer - 100);
+                    const secondsLeft = Math.ceil(cooldownTimer / 1000);
+                    spinButton.textContent = `Wait (${secondsLeft}s)`;
+                    spinButton.style.opacity = '0.7';
+                    spinButton.style.cursor = 'not-allowed';
+                } else {
+                    spinButton.textContent = 'Spin';
+                    spinButton.style.opacity = '1';
+                    spinButton.style.cursor = 'pointer';
+                }
+            }
+            
+            // Set an interval to update button state
+            setInterval(updateButtonState, 100);
+        });
     </script>
 </body>
 </html>
+
+
+
+
+
+
