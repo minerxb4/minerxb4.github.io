@@ -347,6 +347,9 @@ body {
     <div id="jackpot" class="jackpot">
         <video id="jackpot-video" src="jackpot.mp4" muted loop></video>
     </div>
+    <div id="partial-match" class="partial-match">
+        <video id="partial-match-video" src="partial-match.mp4" muted></video>
+    </div>
 
     <script>
         const introSound = document.getElementById('intro-sound');
@@ -479,27 +482,32 @@ body {
 function checkJackpot(results) {
     const jackpotElement = document.getElementById('jackpot');
     const jackpotVideo = document.getElementById('jackpot-video');
+    const partialMatchElement = document.getElementById('partial-match');
+    const partialMatchVideo = document.getElementById('partial-match-video');
+    
     const isJackpot = results[0] === results[1] && results[1] === results[2];
-
+    const isPartialMatch = results[0] === results[1] && results[1] !== results[2];
+    
     // Play reel stop sound
     reelStopSound.pause();
     reelStopSound.currentTime = 0;
     reelStopSound.play();
-
+    
     if (isJackpot) {
+        // Full jackpot - all three reels match
         jackpotElement.style.display = 'block';
         jackpotVideo.currentTime = 0;
         jackpotVideo.play();
-
+        
         jackpotSound.pause();
         jackpotSound.currentTime = 0;
         jackpotSound.play();
-
+        
         // Determine ball type and message
         const jackpotNumber = results[0];
         const ballType = jackpotNumber % 2 === 0 ? "rainbow" : "green";
         const message = jackpotNumber % 2 === 0 ? "Increased Probability!" : "Faster Spins!";
-
+        
         // Set faster spins mode if applicable
         if (message === "Faster Spins!") {
             isFasterSpinsMode = true;
@@ -509,29 +517,47 @@ function checkJackpot(results) {
                 displayMessage("Faster Spins mode ended");
             }, 30000);
         }
-
+        
         spawnBall(ballType);
         displayMessage(message);
-
-        // Reset jackpot probability
-        jackpotProbability = 1 / 49;
-
+        
+        // Hide partial match if it was showing
+        partialMatchElement.classList.remove('active');
         setTimeout(() => {
-            jackpotVideo.pause();
-            jackpotElement.style.display = 'none';
-        }, 120000); // Adjust time as needed
-    } else {
+            partialMatchElement.style.display = 'none';
+        }, 500);
+        
+    } else if (isPartialMatch) {
+        // Partial match - first two reels match
         jackpotElement.style.display = 'none';
-        if (isJackpot) {
-    const jackpotNumber = results[0];
-    const ballType = jackpotNumber % 2 === 0 ? "rainbow" : "green";
-    const message = jackpotNumber % 2 === 0 ? "Increased Probability!" : "Faster Spins!";
-
-    spawnBall(ballType); // Spawn specific ball type
-    displayBall(); // Display a random ball for variety
-    displayMessage(message); // Show the message
-}
-
+        
+        // Show partial match animation
+        partialMatchElement.style.display = 'block';
+        setTimeout(() => {
+            partialMatchElement.classList.add('active');
+        }, 10);
+        
+        partialMatchVideo.currentTime = 0;
+        partialMatchVideo.play();
+        
+        // Display a message
+        displayMessage("Almost there!");
+        
+        // Fade out after video ends or after 3 seconds
+        setTimeout(() => {
+            partialMatchElement.classList.remove('active');
+            setTimeout(() => {
+                partialMatchElement.style.display = 'none';
+            }, 500);
+        }, 3000);
+        
+    } else {
+        // No match
+        jackpotElement.style.display = 'none';
+        partialMatchElement.classList.remove('active');
+        setTimeout(() => {
+            partialMatchElement.style.display = 'none';
+        }, 500);
     }
 }
 
@@ -632,6 +658,8 @@ function updateProbability(color) {
         jackpotProbability = Math.min(jackpotProbability * 3, 0.99); // Cap at 99%
     } else if (color === 'rainbow') {
         jackpotProbability = 0.99; // Directly set to 99%
+    } else if (color === 'green') {
+        jackpotProbability = 1 / 49; // Reset to default probability
     }
 
     console.log(`New jackpot probability: ${jackpotProbability}`);
@@ -730,9 +758,38 @@ function updateProbability(color) {
     </script>
 </body>
 </html>
-
-
-
-
+    <style>
+        /* Add these styles for the partial match animation */
+        .partial-match {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 30%; /* Takes up bottom third of screen */
+            z-index: 3;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+        
+        .partial-match video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .partial-match.active {
+            display: block;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <!-- Add this to your HTML, just before the closing </body> tag -->
+    <div id="partial-match" class="partial-match">
+        <video id="partial-match-video" src="partial-match.mp4" muted></video>
+    </div>
+</body>
+</html>
 
 
